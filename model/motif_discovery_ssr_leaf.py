@@ -1,4 +1,5 @@
 import pandas as pd
+import shap
 from tensorflow.keras import models
 from tensorflow.keras import backend
 import os
