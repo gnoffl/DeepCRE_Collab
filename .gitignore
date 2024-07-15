@@ -1,0 +1,9 @@
+*.h5
+*.keras
+model/tpm_counts/*
+results/*
+*.csv
+model/gene_models/*
+model/genomes/*
+model/saved_models/*
+*.pickle
