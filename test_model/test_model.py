@@ -122,11 +122,11 @@ class TestShap(unittest.TestCase):
 
     def test_shap_lift(self):
         os.chdir(model_path)
-        species = ['arabidopsis']
-        gene_models = ['Arabidopsis_thaliana.TAIR10.52.gtf']
-        genomes = ['Arabidopsis_thaliana.TAIR10.dna.toplevel.fa']
-        pickle_keys = ['ara']
-        mapped_read_counts = ['arabidopsis_counts.csv']
+        species = ['zea']
+        gene_models = ['Zea_mays.Zm-B73-REFERENCE-NAM-5.0.52.gtf']
+        genomes = ['Zea_mays.Zm-B73-REFERENCE-NAM-5.0.dna.toplevel.fa']
+        pickle_keys = ["zea"]
+        mapped_read_counts = ['zea_counts.csv']
 
         for plant, fasta_file, gtf_file, pickled_key, counts in zip(species, genomes, gene_models, pickle_keys,
                                                                     mapped_read_counts):
