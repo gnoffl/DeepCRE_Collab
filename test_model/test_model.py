@@ -50,6 +50,8 @@ class TestShap(unittest.TestCase):
                                                 data=shuffle_several_times)
         raw_shap_explanations = dinuc_shuff_explainer.shap_values(onehot_data, check_additivity=False)
         dinuc_shuff_explanations = (np.sum(raw_shap_explanations, axis=-1)[:, :, None] * onehot_data)
+        print("im here!")
+        print(dinuc_shuff_explanations)
 
         return dinuc_shuff_explanations
 
