@@ -116,7 +116,7 @@ class TestShap(unittest.TestCase):
                 print(raw_shap_explanations.shape)
                 # print(actual_scores)
                 # print(actual_scores.shape)
-                self.assertTrue(np.array_equal(raw_shap_explanations, 0))
+                self.assertTrue(np.array_equal(raw_shap_explanations, 12))
                 return raw_shap_explanations
 
 
