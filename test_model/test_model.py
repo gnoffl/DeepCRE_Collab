@@ -118,7 +118,7 @@ class TestShap(unittest.TestCase):
 
 
     def test_shap_lift(self):
-        os.chdir("/home/gernot/Code/PhD_Code/DeepCRE_Collab/model")
+        os.chdir(model_path)
         species = ['arabidopsis']
         gene_models = ['Arabidopsis_thaliana.TAIR10.52.gtf']
         genomes = ['Arabidopsis_thaliana.TAIR10.dna.toplevel.fa']
