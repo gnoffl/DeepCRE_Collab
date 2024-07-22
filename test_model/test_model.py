@@ -25,7 +25,7 @@ import sys
 model_path = os.path.join(os.path.dirname(__file__), "..", "model")
 sys.path.insert(1, model_path)
 from utils import prepare_valid_seqs
-from motif_discovery_ssr_leaf import shuffle_several_times
+# from motif_discovery_ssr_leaf import shuffle_several_times
 
 class TestShap(unittest.TestCase):
 
