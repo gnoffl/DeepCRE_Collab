@@ -117,6 +117,7 @@ class TestShap(unittest.TestCase):
                 # print(actual_scores)
                 # print(actual_scores.shape)
                 self.assertTrue(np.array_equal(raw_shap_explanations, raw_shap_explanations))
+                return raw_shap_explanations
 
 
     def test_shap_lift(self):
@@ -131,7 +132,8 @@ class TestShap(unittest.TestCase):
                                                                     mapped_read_counts):
             if not os.path.exists(f'modisco/{plant}_modisco.hdf5'):
                 print(f'Computing contribution and hypothetical contribution scores for {plant}-----------------------------\n')
-                self.compute_actual_and_hypothetical_scores(fasta_file, gtf_file, counts, plant)
+                res = self.compute_actual_and_hypothetical_scores(fasta_file, gtf_file, counts, plant)
+                print(res)
                 print(f'Running TFMoDisco on {plant}------------------------------------------------------------------------\n')
     
     # def test_deep_shap(self):
