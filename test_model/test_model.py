@@ -157,6 +157,8 @@ class TestShap(unittest.TestCase):
                 print(f'Computing contribution and hypothetical contribution scores for {plant}-----------------------------\n')
                 res = self.compute_actual_and_hypothetical_scores(fasta_file, gtf_file, counts, plant)
                 print("resulting explanations: ", res)
+                res = self.compute_actual_and_hypothetical_scores(fasta_file, gtf_file, counts, plant)
+                print("resulting explanations: ", res)
                 print(f'Running TFMoDisco on {plant}------------------------------------------------------------------------\n')
     
     # def test_deep_shap(self):
