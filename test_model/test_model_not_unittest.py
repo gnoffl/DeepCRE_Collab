@@ -44,13 +44,15 @@ class TestShap():
     
     @staticmethod
     def compute_scores(onehot_data, keras_model):
+        print("im here!1")
         shap.explainers._deep.deep_tf.op_handlers["AddV2"] = shap.explainers._deep.deep_tf.passthrough
         shap.explainers._deep.deep_tf.op_handlers["FusedBatchNormV3"] = shap.explainers._deep.deep_tf.passthrough
+        print("im here!2")
         dinuc_shuff_explainer = shap.DeepExplainer(model=(keras_model.input, keras_model.output[:, 0]),
                                                 data=shuffle_several_times)
         raw_shap_explanations = dinuc_shuff_explainer.shap_values(onehot_data, check_additivity=False)
         dinuc_shuff_explanations = (np.sum(raw_shap_explanations, axis=-1)[:, :, None] * onehot_data)
-        print("im here!")
+        print("im here!3")
         print(dinuc_shuff_explanations)
 
         return dinuc_shuff_explanations
