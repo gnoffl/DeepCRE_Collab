@@ -23,27 +23,27 @@ import h5py
 import modisco
 from importlib import reload
 from utils import prepare_valid_seqs
-from einops import rearrange
+#from einops import rearrange
 
 
 model_path = os.path.join(os.path.dirname(__file__), "..", "model")
 
 
-def shuffle_several_times_fritz(seqs, reps: int = 100):
-    """creates shuffled versions of input data
-
-    Args:
-        s (_type_): input data to be shuffled
-        num_shufs (int, optional): number of shuffled versions of the input to be created. Defaults to 100.
-
-    Returns:
-        _type_: returns multiple shuffled versions of the input
-    """
-    seqs = np.array(seqs)
-    assert len(seqs.shape) == 3
-    sep_shuffled_seqs = np.array([dinuc_shuffle(s, num_shufs=reps) for s in seqs])
-    shuffle_out = rearrange(sep_shuffled_seqs, "b r l n -> (b r) l n")
-    return shuffle_out
+#def shuffle_several_times_fritz(seqs, reps: int = 100):
+#    """creates shuffled versions of input data
+#
+#    Args:
+#        s (_type_): input data to be shuffled
+#        num_shufs (int, optional): number of shuffled versions of the input to be created. Defaults to 100.
+#
+#    Returns:
+#        _type_: returns multiple shuffled versions of the input
+#    """
+#    seqs = np.array(seqs)
+#    assert len(seqs.shape) == 3
+#    sep_shuffled_seqs = np.array([dinuc_shuffle(s, num_shufs=reps) for s in seqs])
+#    shuffle_out = rearrange(sep_shuffled_seqs, "b r l n -> (b r) l n")
+#    return shuffle_out
 
 
 #This generates 20 references per sequence
@@ -241,6 +241,7 @@ def main(test=False):
     backend.clear_session()
     if not os.path.exists('modisco'):
         os.mkdir('modisco')
+    print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!\nrunning correct script\n!!!!!!!!!!!!!!!!!!!!!!!!!")
     os.chdir("/home/gernot/Code/PhD_Code/DeepCRE_Collab/model")
     species = ['arabidopsis', 'zea', 'solanum', 'sbicolor']
     gene_models = ['Arabidopsis_thaliana.TAIR10.52.gtf', 'Zea_mays.Zm-B73-REFERENCE-NAM-5.0.52.gtf',
