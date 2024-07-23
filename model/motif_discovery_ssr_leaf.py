@@ -160,19 +160,19 @@ def compute_actual_and_hypothetical_scores(fasta, gtf, tpms, specie):
             onehot_all.append(x)
             break       #REMOVE AGAIN
 
-    # Save scores in h5 format
-    if os.path.isfile(f'modisco/{specie}_scores.h5'):
-        os.system(f'rm -rf modisco/{specie}_scores.h5')
+    # # Save scores in h5 format
+    # if os.path.isfile(f'modisco/{specie}_scores.h5'):
+    #     os.system(f'rm -rf modisco/{specie}_scores.h5')
 
-    actual_scores_all = np.concatenate(actual_scores_all, axis=0)
-    hypothetical_scores_all = np.concatenate(hypothetical_scores_all, axis=0)
-    onehot_all = np.concatenate(onehot_all, axis=0)
+    # actual_scores_all = np.concatenate(actual_scores_all, axis=0)
+    # hypothetical_scores_all = np.concatenate(hypothetical_scores_all, axis=0)
+    # onehot_all = np.concatenate(onehot_all, axis=0)
 
-    h = h5py.File(f'modisco/{specie}_scores.h5', 'w')
-    h.create_dataset('contrib_scores', data=actual_scores_all)
-    h.create_dataset('hypothetical_scores', data=hypothetical_scores_all)
-    h.create_dataset('one_hots', data=onehot_all)
-    h.close()
+    # h = h5py.File(f'modisco/{specie}_scores.h5', 'w')
+    # h.create_dataset('contrib_scores', data=actual_scores_all)
+    # h.create_dataset('hypothetical_scores', data=hypothetical_scores_all)
+    # h.create_dataset('one_hots', data=onehot_all)
+    # h.close()
 
 
 def run_modisco(specie):
