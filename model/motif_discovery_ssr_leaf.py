@@ -1,34 +1,111 @@
 import pandas as pd
-from tensorflow.keras import models
-from tensorflow.keras import backend
+import tensorflow as tf
+import tensorflow.keras
+from tensorflow.keras import layers
+from tensorflow.keras import models     #type:ignore
+from tensorflow.keras import backend    #type:ignore
+
+tf.compat.v1.disable_v2_behavior()
+tf.compat.v1.disable_eager_execution()  # changed from enable 23-july 8:55
+
 import os
+os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true' #added for GPU
 import numpy as np
 import deeplift
+import shap
+import shap.explainers.deep.deep_tf   #added on 15:22 22-july
 from deeplift.util import get_shuffle_seq_ref_function
 from deeplift.dinuc_shuffle import dinuc_shuffle
 from deeplift.conversion import kerasapi_conversion as kc
-from utils import prepare_valid_seqs
-from sklearn.metrics import accuracy_score
 from deeplift.util import get_hypothetical_contribs_func_onehot
+from sklearn.metrics import accuracy_score
 import h5py
 import modisco
 from importlib import reload
-os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'
-backend.clear_session()
-if not os.path.exists('modisco'):
-    os.mkdir('modisco')
+from utils import prepare_valid_seqs
+from einops import rearrange
+
+
+model_path = os.path.join(os.path.dirname(__file__), "..", "model")
+
+
+def shuffle_several_times_fritz(seqs, reps: int = 100):
+    """creates shuffled versions of input data
+
+    Args:
+        s (_type_): input data to be shuffled
+        num_shufs (int, optional): number of shuffled versions of the input to be created. Defaults to 100.
+
+    Returns:
+        _type_: returns multiple shuffled versions of the input
+    """
+    seqs = np.array(seqs)
+    assert len(seqs.shape) == 3
+    sep_shuffled_seqs = np.array([dinuc_shuffle(s, num_shufs=reps) for s in seqs])
+    shuffle_out = rearrange(sep_shuffled_seqs, "b r l n -> (b r) l n")
+    return shuffle_out
+
+
+#This generates 20 references per sequence
+def shuffle_several_times(list_containing_input_modes_for_an_example,                  #"dinuc_" removed on 15:59 22-july
+                                seed=1234):                                            # taken from colab link
+  assert len(list_containing_input_modes_for_an_example)==1
+  onehot_seq = list_containing_input_modes_for_an_example[0]
+  rng = np.random.RandomState(seed)
+  to_return = np.array([dinuc_shuffle(onehot_seq, rng=rng) for i in range(20)])
+  return [to_return] #wrap in list for compatibility with multiple modes
+
+
+def compute_scores(onehot_data, keras_model):
+    shap.explainers.deep.deep_tf.op_handlers["AddV2"] = shap.explainers.deep.deep_tf.passthrough
+    shap.explainers.deep.deep_tf.op_handlers["FusedBatchNormV3"] = shap.explainers.deep.deep_tf.passthrough  #removed "_" from _deep on 15:22 22-july
+    dinuc_shuff_explainer = shap.DeepExplainer(model=(keras_model.input, keras_model.output[:, 0]),
+                                            data=shuffle_several_times)
+    raw_shap_explanations = dinuc_shuff_explainer.shap_values(onehot_data)  #23-july 8:57 removed ", check_additivity=False"
+    dinuc_shuff_explanations = (np.sum(raw_shap_explanations, axis=-1)[:, :, None] * onehot_data)
+    print(dinuc_shuff_explanations)
+    return dinuc_shuff_explanations
+
+
+def combine_mult_and_diffref(mult, orig_inp, bg_data):
+    to_return = []
+    for l in range(len(mult)):
+        projected_hypothetical_contribs = np.zeros_like(bg_data[l]).astype("float")
+        assert len(orig_inp[l].shape)==2
+        #At each position in the input sequence, we iterate over the one-hot encoding
+        # possibilities (eg: for genomic sequence, this is ACGT i.e.
+        # 1000, 0100, 0010 and 0001) and compute the hypothetical 
+        # difference-from-reference in each case. We then multiply the hypothetical
+        # differences-from-reference with the multipliers to get the hypothetical contributions.
+        #For each of the one-hot encoding possibilities,
+        # the hypothetical contributions are then summed across the ACGT axis to estimate
+        # the total hypothetical contribution of each position. This per-position hypothetical
+        # contribution is then assigned ("projected") onto whichever base was present in the
+        # hypothetical sequence.
+        #The reason this is a fast estimate of what the importance scores *would* look
+        # like if different bases were present in the underlying sequence is that
+        # the multipliers are computed once using the original sequence, and are not
+        # computed again for each hypothetical sequence.
+        for i in range(orig_inp[l].shape[-1]):
+            hypothetical_input = np.zeros_like(orig_inp[l]).astype("float")
+            hypothetical_input[:,i] = 1.0
+            hypothetical_difference_from_reference = (hypothetical_input[None,:,:]-bg_data[l])
+            hypothetical_contribs = hypothetical_difference_from_reference*mult[l]
+            projected_hypothetical_contribs[:,:,i] = np.sum(hypothetical_contribs,axis=-1) 
+        to_return.append(np.mean(projected_hypothetical_contribs,axis=0))
+    return to_return
 
 
 def compute_actual_and_hypothetical_scores(fasta, gtf, tpms, specie):
     actual_scores_all, hypothetical_scores_all, onehot_all = [], [], []
-    for saved_model in os.listdir('saved_models'):
-        if saved_model.startswith(specie) and saved_model.endswith('terminator.h5'):
-            print(saved_model)
-            val_chrom = saved_model.split('_')[2]
+    for saved_model_file_name in os.listdir(os.path.join(model_path, 'saved_models')):
+        if saved_model_file_name.startswith(specie) and saved_model_file_name.endswith('terminator.h5'):
+            print(saved_model_file_name)
+            val_chrom = saved_model_file_name.split('_')[2]
             x_val, y_val, genes_val = prepare_valid_seqs(fasta, gtf, tpms, val_chrom, pkey=False)
 
-            saved_name = f'saved_models/{saved_model}'
-            loaded_model = models.load_model(saved_name)
+            saved_model_path = os.path.join(os.path.dirname(__file__), 'saved_models', saved_model_file_name)
+            loaded_model = tf.keras.models.load_model(saved_model_path)
             predicted_prob = loaded_model.predict(x_val)
             predicted_class = predicted_prob > 0.5
             print('Accuracy', accuracy_score(y_val, predicted_class))
@@ -44,40 +121,43 @@ def compute_actual_and_hypothetical_scores(fasta, gtf, tpms, specie):
 
             print(f'Number of correct predictions {x.shape[0]}')
             # ---------- Computing importance and hypothetical scores-------------------------------------------#
-            deeplift_model = kc.convert_model_from_saved_files(saved_name,
-                                                               nonlinear_mxts_mode=deeplift.layers.NonlinearMxtsMode.DeepLIFT_GenomicsDefault)
+            # deeplift_model = kc.convert_model_from_saved_files(saved_model_path,
+            #                                                    nonlinear_mxts_mode=deeplift.layers.NonlinearMxtsMode.DeepLIFT_GenomicsDefault) #type:ignore
+            # # deeplift_model = shap.DeepExplainer((loaded_model.input, loaded_model.output[:, 0]), shuffle_several_times)
 
-            deeplift_contribs_func = deeplift_model.get_target_contribs_func(find_scores_layer_idx=0,
-                                                                             target_layer_idx=-2)
+            # deeplift_contribs_func = deeplift_model.get_target_contribs_func(find_scores_layer_idx=0,
+            #                                                                  target_layer_idx=-2)
 
-            contribs_many_refs_func = get_shuffle_seq_ref_function(
-                score_computation_function=deeplift_contribs_func,
-                shuffle_func=dinuc_shuffle)
+            # contribs_many_refs_func = get_shuffle_seq_ref_function(
+            #     score_computation_function=deeplift_contribs_func,
+            #     shuffle_func=dinuc_shuffle)
 
-            multipliers_func = deeplift_model.get_target_multipliers_func(find_scores_layer_idx=0,
-                                                                          target_layer_idx=-2)
-            hypothetical_contribs_func = get_hypothetical_contribs_func_onehot(multipliers_func)
+            # multipliers_func = deeplift_model.get_target_multipliers_func(find_scores_layer_idx=0,
+            #                                                               target_layer_idx=-2)
+            # hypothetical_contribs_func = get_hypothetical_contribs_func_onehot(multipliers_func)
 
-            # Once again, we rely on multiple shuffled references
-            hypothetical_contribs_many_refs_func = get_shuffle_seq_ref_function(
-                score_computation_function=hypothetical_contribs_func,
-                shuffle_func=dinuc_shuffle)
+            # # Once again, we rely on multiple shuffled references
+            # hypothetical_contribs_many_refs_func = get_shuffle_seq_ref_function(
+            #     score_computation_function=hypothetical_contribs_func,
+            #     shuffle_func=dinuc_shuffle)
 
-            actual_scores = np.squeeze(np.sum(contribs_many_refs_func(task_idx=0,
-                                                                      input_data_sequences=x,
-                                                                      num_refs_per_seq=10,
-                                                                      batch_size=50,
-                                                                      progress_update=4000), axis=2))[:, :, None] * x
+            actual_scores = compute_scores(onehot_data=x, keras_model=loaded_model)
+            # actual_scores = np.squeeze(np.sum(contribs_many_refs_func(task_idx=0,
+            #                                                           input_data_sequences=x,
+            #                                                           num_refs_per_seq=10,
+            #                                                           batch_size=50,
+            #                                                           progress_update=4000), axis=2))[:, :, None] * x
 
-            hyp_scores = hypothetical_contribs_many_refs_func(task_idx=0,
-                                                              input_data_sequences=x,
-                                                              num_refs_per_seq=10,
-                                                              batch_size=50,
-                                                              progress_update=4000)
+            # hyp_scores = hypothetical_contribs_many_refs_func(task_idx=0,
+            #                                                   input_data_sequences=x,
+            #                                                   num_refs_per_seq=10,
+            #                                                   batch_size=50,
+            #                                                   progress_update=4000)
 
             actual_scores_all.append(actual_scores)
-            hypothetical_scores_all.append(hyp_scores)
+            # hypothetical_scores_all.append(hyp_scores)
             onehot_all.append(x)
+            break       #REMOVE AGAIN
 
     # Save scores in h5 format
     if os.path.isfile(f'modisco/{specie}_scores.h5'):
@@ -103,9 +183,9 @@ def run_modisco(specie):
     hypothetical_scores = h5_data.get('hypothetical_scores')
     one_hots = h5_data.get('one_hots')
 
-    print('contributions', contribution_scores.shape)
-    print('hypothetical contributions', hypothetical_scores.shape)
-    print('correct predictions', one_hots.shape)
+    print('contributions', contribution_scores.shape)               #type:ignore
+    print('hypothetical contributions', hypothetical_scores.shape)  #type:ignore
+    print('correct predictions', one_hots.shape)                    #type:ignore
     # -----------------------Running modisco----------------------------------------------#
     # Uncomment to refresh modules for when tweaking code during development:
     reload(modisco.util)
@@ -157,18 +237,43 @@ def run_modisco(specie):
     grp.close()
 
 
-species = ['arabidopsis', 'zea', 'solanum', 'sbicolor']
-gene_models = ['Arabidopsis_thaliana.TAIR10.52.gtf', 'Zea_mays.Zm-B73-REFERENCE-NAM-5.0.52.gtf',
-               'Solanum_lycopersicum.SL3.0.52.gtf', 'Sorghum_bicolor.Sorghum_bicolor_NCBIv3.52.gtf']
-genomes = ['Arabidopsis_thaliana.TAIR10.dna.toplevel.fa', 'Zea_mays.Zm-B73-REFERENCE-NAM-5.0.dna.toplevel.fa',
-           'Solanum_lycopersicum.SL3.0.dna.toplevel.fa', 'Sorghum_bicolor.Sorghum_bicolor_NCBIv3.dna.toplevel.fa']
-pickle_keys = ['ara', 'zea', 'sol', 'sor']
-mapped_read_counts = ['arabidopsis_counts.csv', 'zea_counts.csv', 'solanum_counts.csv', 'sbicolor_counts.csv']
+def main(test=False):
+    backend.clear_session()
+    if not os.path.exists('modisco'):
+        os.mkdir('modisco')
+    os.chdir("/home/gernot/Code/PhD_Code/DeepCRE_Collab/model")
+    species = ['arabidopsis', 'zea', 'solanum', 'sbicolor']
+    gene_models = ['Arabidopsis_thaliana.TAIR10.52.gtf', 'Zea_mays.Zm-B73-REFERENCE-NAM-5.0.52.gtf',
+                'Solanum_lycopersicum.SL3.0.52.gtf', 'Sorghum_bicolor.Sorghum_bicolor_NCBIv3.52.gtf']
+    genomes = ['Arabidopsis_thaliana.TAIR10.dna.toplevel.fa', 'Zea_mays.Zm-B73-REFERENCE-NAM-5.0.dna.toplevel.fa',
+            'Solanum_lycopersicum.SL3.0.dna.toplevel.fa', 'Sorghum_bicolor.Sorghum_bicolor_NCBIv3.dna.toplevel.fa']
+    pickle_keys = ['ara', 'zea', 'sol', 'sor']
+    mapped_read_counts = ['arabidopsis_counts.csv', 'zea_counts.csv', 'solanum_counts.csv', 'sbicolor_counts.csv']
 
-for plant, fasta_file, gtf_file, pickled_key, counts in zip(species, genomes, gene_models, pickle_keys,
-                                                            mapped_read_counts):
-    if not os.path.exists(f'modisco/{plant}_modisco.hdf5'):
-        print(f'Computing contribution and hypothetical contribution scores for {plant}-----------------------------\n')
-        compute_actual_and_hypothetical_scores(fasta_file, gtf_file, counts, plant)
-        print(f'Running TFMoDisco on {plant}------------------------------------------------------------------------\n')
-        run_modisco(plant)
+    for plant, fasta_file, gtf_file, pickled_key, counts in zip(species, genomes, gene_models, pickle_keys,
+                                                                mapped_read_counts):
+        if not os.path.exists(f'modisco/{plant}_modisco.hdf5'):
+            print(f'Computing contribution and hypothetical contribution scores for {plant}-----------------------------\n')
+            compute_actual_and_hypothetical_scores(fasta_file, gtf_file, counts, plant)
+            if not test:
+                print(f'Running TFMoDisco on {plant}------------------------------------------------------------------------\n')
+                run_modisco(plant)
+
+
+# def load_tf1(path, input):
+#   print('Loading from', path)
+#   with tf.Graph().as_default() as g:
+#     with tf.compat.v1.Session() as sess:
+#       meta_graph = tf.compat.v1.saved_model.load(sess, ["serve"], path)
+#       sig_def = meta_graph.signature_def[tf.saved_model.DEFAULT_SERVING_SIGNATURE_DEF_KEY]
+#       input_name = sig_def.inputs['input'].name
+#       output_name = sig_def.outputs['output'].name
+#       print('  Output with input', input, ': ', 
+#             sess.run(output_name, feed_dict={input_name: input}))
+
+
+
+if __name__ == "__main__":
+    # h5_path = "/home/gernot/Code/PhD_Code/DeepCRE_Collab/model/saved_models/arabidopsis_model_1_promoter_terminator.keras"
+    # model = tf.keras.models.load_model(h5_path)
+    main()
