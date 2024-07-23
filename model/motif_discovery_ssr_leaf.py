@@ -242,7 +242,7 @@ def main(test=False):
     if not os.path.exists('modisco'):
         os.mkdir('modisco')
     print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!\nrunning correct script\n!!!!!!!!!!!!!!!!!!!!!!!!!")
-    os.chdir("/home/gernot/Code/PhD_Code/DeepCRE_Collab/model")
+    os.chdir("/mnt/data/project/2024_deep_phy/DeepCRE/DeepCRE_2/DeepCRE/model")
     species = ['arabidopsis', 'zea', 'solanum', 'sbicolor']
     gene_models = ['Arabidopsis_thaliana.TAIR10.52.gtf', 'Zea_mays.Zm-B73-REFERENCE-NAM-5.0.52.gtf',
                 'Solanum_lycopersicum.SL3.0.52.gtf', 'Sorghum_bicolor.Sorghum_bicolor_NCBIv3.52.gtf']
