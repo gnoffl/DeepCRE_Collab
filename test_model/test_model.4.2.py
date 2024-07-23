@@ -1,19 +1,23 @@
+###testmodel.py###
 
 import pandas as pd
 import tensorflow as tf
-import keras
-from keras import layers
+import tensorflow.keras
+from tensorflow.keras import layers
 from tensorflow.keras import models     #type:ignore
 from tensorflow.keras import backend    #type:ignore
 
+
 tf.compat.v1.disable_v2_behavior()
-tf.compat.v1.enable_eager_execution()
-tf.config.set_visible_devices([], 'GPU')
+tf.compat.v1.disable_eager_execution()  # changed from enable 23-july 8:55
+#tf.config.set_visible_devices([], 'GPU') # changed from enable 23-july 9:18
 
 import os
+os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true' #added for GPU
 import numpy as np
 import deeplift
 import shap
+import shap.explainers.deep.deep_tf   #added on 15:22 22-july
 from deeplift.util import get_shuffle_seq_ref_function
 from deeplift.dinuc_shuffle import dinuc_shuffle
 from deeplift.conversion import kerasapi_conversion as kc
@@ -27,7 +31,26 @@ sys.path.insert(1, model_path)
 from utils import prepare_valid_seqs
 # from motif_discovery_ssr_leaf import shuffle_several_times
 
-class TestShap():
+from collections import Counter                                                        #added on 15:59 22-july
+
+#This generates 20 references per sequence
+def shuffle_several_times(list_containing_input_modes_for_an_example,                  #"dinuc_" removed on 15:59 22-july
+                                seed=1234):                                            # taken from colab link
+  assert len(list_containing_input_modes_for_an_example)==1
+  onehot_seq = list_containing_input_modes_for_an_example[0]
+  rng = np.random.RandomState(seed)
+  to_return = np.array([dinuc_shuffle(onehot_seq, rng=rng) for i in range(20)])
+  return [to_return] #wrap in list for compatibility with multiple modes
+
+
+#def shuffle_several_times(seqs,reps:int=100):                                          #added on 15:43 22-july
+#    seqs = np.array(seqs)
+#    assert len(seqs.shape) == 3
+#    sep_shuffled_seqs = np.array([dinuc_shuffle(s, num_shufs=reps) for s in seqs])
+#    shuffle_out = rearrange(sep_shuffled_seqs, "b r l n -> (b r) l n")
+#    return shuffle_out
+
+class TestShap(unittest.TestCase):
 
 
     @staticmethod
@@ -44,22 +67,20 @@ class TestShap():
     
     @staticmethod
     def compute_scores(onehot_data, keras_model):
-        print("im here!1")
-        shap.explainers._deep.deep_tf.op_handlers["AddV2"] = shap.explainers._deep.deep_tf.passthrough
-        shap.explainers._deep.deep_tf.op_handlers["FusedBatchNormV3"] = shap.explainers._deep.deep_tf.passthrough
-        print("im here!2")
+        shap.explainers.deep.deep_tf.op_handlers["AddV2"] = shap.explainers.deep.deep_tf.passthrough
+        shap.explainers.deep.deep_tf.op_handlers["FusedBatchNormV3"] = shap.explainers.deep.deep_tf.passthrough  #removed "_" from _deep on 15:22 22-july
         dinuc_shuff_explainer = shap.DeepExplainer(model=(keras_model.input, keras_model.output[:, 0]),
                                                 data=shuffle_several_times)
-        raw_shap_explanations = dinuc_shuff_explainer.shap_values(onehot_data, check_additivity=False)
+        raw_shap_explanations = dinuc_shuff_explainer.shap_values(onehot_data)  #23-july 8:57 removed ", check_additivity=False"
         dinuc_shuff_explanations = (np.sum(raw_shap_explanations, axis=-1)[:, :, None] * onehot_data)
-        print("im here!3")
+        print("im here!")
         print(dinuc_shuff_explanations)
 
         return dinuc_shuff_explanations
 
     def compute_actual_and_hypothetical_scores(self, fasta, gtf, tpms, specie):
         for saved_model_name_keras in os.listdir(os.path.join(model_path, 'saved_models')):
-            if saved_model_name_keras.startswith(specie) and saved_model_name_keras.endswith('terminator.keras'):
+            if saved_model_name_keras.startswith(specie) and saved_model_name_keras.endswith('terminator.h5'):
                 print(saved_model_name_keras)
                 val_chrom = saved_model_name_keras.split('_')[2]
                 x_val, y_val, genes_val = prepare_valid_seqs(fasta, gtf, tpms, val_chrom, pkey=False)
@@ -118,7 +139,7 @@ class TestShap():
                 print(raw_shap_explanations.shape)
                 # print(actual_scores)
                 # print(actual_scores.shape)
-                # self.assertIsNotNone(raw_shap_explanations)
+                self.assertIsNotNone(raw_shap_explanations)
                 return raw_shap_explanations
 
 
@@ -157,5 +178,4 @@ class TestShap():
 if __name__ == "__main__":
     # h5_path = "/home/gernot/Code/PhD_Code/DeepCRE_Collab/model/saved_models/arabidopsis_model_1_promoter_terminator.keras"
     # model = tf.keras.models.load_model(h5_path)
-    test = TestShap()
-    test.test_shap_lift()
+    unittest.main()

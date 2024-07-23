@@ -1,23 +1,19 @@
-###testmodel.py###
 
 import pandas as pd
 import tensorflow as tf
-import tensorflow.keras
-from tensorflow.keras import layers
+import keras
+from keras import layers
 from tensorflow.keras import models     #type:ignore
 from tensorflow.keras import backend    #type:ignore
 
-
 tf.compat.v1.disable_v2_behavior()
-tf.compat.v1.disable_eager_execution()  # changed from enable 23-july 8:55
-#tf.config.set_visible_devices([], 'GPU') # changed from enable 23-july 9:18
+tf.compat.v1.enable_eager_execution()
+tf.config.set_visible_devices([], 'GPU')
 
 import os
-os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true' #added for GPU
 import numpy as np
 import deeplift
 import shap
-import shap.explainers.deep.deep_tf   #added on 15:22 22-july
 from deeplift.util import get_shuffle_seq_ref_function
 from deeplift.dinuc_shuffle import dinuc_shuffle
 from deeplift.conversion import kerasapi_conversion as kc
@@ -30,25 +26,6 @@ model_path = os.path.join(os.path.dirname(__file__), "..", "model")
 sys.path.insert(1, model_path)
 from utils import prepare_valid_seqs
 # from motif_discovery_ssr_leaf import shuffle_several_times
-
-from collections import Counter                                                        #added on 15:59 22-july
-
-#This generates 20 references per sequence
-def shuffle_several_times(list_containing_input_modes_for_an_example,                  #"dinuc_" removed on 15:59 22-july
-                                seed=1234):                                            # taken from colab link
-  assert len(list_containing_input_modes_for_an_example)==1
-  onehot_seq = list_containing_input_modes_for_an_example[0]
-  rng = np.random.RandomState(seed)
-  to_return = np.array([dinuc_shuffle(onehot_seq, rng=rng) for i in range(20)])
-  return [to_return] #wrap in list for compatibility with multiple modes
-
-
-#def shuffle_several_times(seqs,reps:int=100):                                          #added on 15:43 22-july
-#    seqs = np.array(seqs)
-#    assert len(seqs.shape) == 3
-#    sep_shuffled_seqs = np.array([dinuc_shuffle(s, num_shufs=reps) for s in seqs])
-#    shuffle_out = rearrange(sep_shuffled_seqs, "b r l n -> (b r) l n")
-#    return shuffle_out
 
 class TestShap(unittest.TestCase):
 
@@ -67,11 +44,11 @@ class TestShap(unittest.TestCase):
     
     @staticmethod
     def compute_scores(onehot_data, keras_model):
-        shap.explainers.deep.deep_tf.op_handlers["AddV2"] = shap.explainers.deep.deep_tf.passthrough
-        shap.explainers.deep.deep_tf.op_handlers["FusedBatchNormV3"] = shap.explainers.deep.deep_tf.passthrough  #removed "_" from _deep on 15:22 22-july
+        shap.explainers._deep.deep_tf.op_handlers["AddV2"] = shap.explainers._deep.deep_tf.passthrough
+        shap.explainers._deep.deep_tf.op_handlers["FusedBatchNormV3"] = shap.explainers._deep.deep_tf.passthrough
         dinuc_shuff_explainer = shap.DeepExplainer(model=(keras_model.input, keras_model.output[:, 0]),
                                                 data=shuffle_several_times)
-        raw_shap_explanations = dinuc_shuff_explainer.shap_values(onehot_data)  #23-july 8:57 removed ", check_additivity=False"
+        raw_shap_explanations = dinuc_shuff_explainer.shap_values(onehot_data, check_additivity=False)
         dinuc_shuff_explanations = (np.sum(raw_shap_explanations, axis=-1)[:, :, None] * onehot_data)
         print("im here!")
         print(dinuc_shuff_explanations)
