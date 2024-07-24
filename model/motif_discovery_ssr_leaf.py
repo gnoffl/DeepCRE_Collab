@@ -159,7 +159,10 @@ def compute_actual_and_hypothetical_scores(fasta, gtf, tpms, specie):
             #                                                   batch_size=50,
             #                                                   progress_update=4000)
 
+            print("ACTUAL SCORES:")
             print(actual_scores)
+            print("HYPOTHETICAL SCORES:")
+            print(hyp_scores)
             actual_scores_all.append(actual_scores)
             hypothetical_scores_all.append(hyp_scores)
             onehot_all.append(x)
