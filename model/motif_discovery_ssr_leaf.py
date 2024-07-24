@@ -186,10 +186,15 @@ def compute_actual_and_hypothetical_scores(fasta, gtf, tpms, specie):
 
 
 def run_modisco(specie):
+    species_score_path = f'modisco/{specie}_scores.h5'
     save_file = f"modisco/{specie}_modisco.hdf5"
+    if not os.path.isfile(species_score_path):
+        print(f"no score files found for {specie}! Aborting modisco!")
+        return 
+
     os.system(f'rm -rf {save_file}')
 
-    h5_data = h5py.File(f'modisco/{specie}_scores.h5', 'r')
+    h5_data = h5py.File(species_score_path, 'r')
     contribution_scores = h5_data.get('contrib_scores')
     hypothetical_scores = h5_data.get('hypothetical_scores')
     one_hots = h5_data.get('one_hots')
