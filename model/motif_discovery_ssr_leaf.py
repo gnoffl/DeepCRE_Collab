@@ -56,17 +56,6 @@ def shuffle_several_times(list_containing_input_modes_for_an_example,           
   return [to_return] #wrap in list for compatibility with multiple modes
 
 
-def compute_scores(onehot_data, keras_model):
-    shap.explainers.deep.deep_tf.op_handlers["AddV2"] = shap.explainers.deep.deep_tf.passthrough
-    shap.explainers.deep.deep_tf.op_handlers["FusedBatchNormV3"] = shap.explainers.deep.deep_tf.passthrough  #removed "_" from _deep on 15:22 22-july
-    dinuc_shuff_explainer = shap.DeepExplainer(model=(keras_model.input, keras_model.output[:, 0]),
-                                            data=shuffle_several_times)
-    raw_shap_explanations = dinuc_shuff_explainer.shap_values(onehot_data)  #23-july 8:57 removed ", check_additivity=False"
-    dinuc_shuff_explanations = (np.sum(raw_shap_explanations, axis=-1)[:, :, None] * onehot_data)
-    print(dinuc_shuff_explanations)
-    return dinuc_shuff_explanations
-
-
 def combine_mult_and_diffref(mult, orig_inp, bg_data):
     to_return = []
     for l in range(len(mult)):
@@ -94,6 +83,21 @@ def combine_mult_and_diffref(mult, orig_inp, bg_data):
             projected_hypothetical_contribs[:,:,i] = np.sum(hypothetical_contribs,axis=-1) 
         to_return.append(np.mean(projected_hypothetical_contribs,axis=0))
     return to_return
+
+
+def compute_scores(onehot_data, keras_model, hypothetical=False):
+    shap.explainers.deep.deep_tf.op_handlers["AddV2"] = shap.explainers.deep.deep_tf.passthrough
+    shap.explainers.deep.deep_tf.op_handlers["FusedBatchNormV3"] = shap.explainers.deep.deep_tf.passthrough  #removed "_" from _deep on 15:22 22-july
+    if hypothetical:
+        dinuc_shuff_explainer = shap.DeepExplainer(model=(keras_model.input, keras_model.output[:, 0]),
+                                                   data=shuffle_several_times, combine_mult_and_diffref=combine_mult_and_diffref)
+    else:
+        dinuc_shuff_explainer = shap.DeepExplainer(model=(keras_model.input, keras_model.output[:, 0]),
+                                                   data=shuffle_several_times)
+    raw_shap_explanations = dinuc_shuff_explainer.shap_values(onehot_data)  #23-july 8:57 removed ", check_additivity=False"
+    dinuc_shuff_explanations = (np.sum(raw_shap_explanations, axis=-1)[:, :, None] * onehot_data)
+    print(dinuc_shuff_explanations)
+    return dinuc_shuff_explanations
 
 
 def compute_actual_and_hypothetical_scores(fasta, gtf, tpms, specie):
@@ -141,13 +145,14 @@ def compute_actual_and_hypothetical_scores(fasta, gtf, tpms, specie):
             #     score_computation_function=hypothetical_contribs_func,
             #     shuffle_func=dinuc_shuffle)
 
-            actual_scores = compute_scores(onehot_data=x, keras_model=loaded_model)
+            actual_scores = compute_scores(onehot_data=x, keras_model=loaded_model, hypothetical=False)
             # actual_scores = np.squeeze(np.sum(contribs_many_refs_func(task_idx=0,
             #                                                           input_data_sequences=x,
             #                                                           num_refs_per_seq=10,
             #                                                           batch_size=50,
             #                                                           progress_update=4000), axis=2))[:, :, None] * x
 
+            hyp_scores = compute_scores(onehot_data=x, keras_model=loaded_model, hypothetical=True)
             # hyp_scores = hypothetical_contribs_many_refs_func(task_idx=0,
             #                                                   input_data_sequences=x,
             #                                                   num_refs_per_seq=10,
@@ -156,7 +161,7 @@ def compute_actual_and_hypothetical_scores(fasta, gtf, tpms, specie):
 
             print(actual_scores)
             actual_scores_all.append(actual_scores)
-            hypothetical_scores_all.append(actual_scores) #ONLY TEST; NEEDS TO BE append(hyp_scores)
+            hypothetical_scores_all.append(hyp_scores)
             onehot_all.append(x)
             break       #REMOVE AGAIN
 
@@ -243,7 +248,7 @@ def main(test=False):
     if not os.path.exists('modisco'):
         os.mkdir('modisco')
     print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!\nrunning correct script\n!!!!!!!!!!!!!!!!!!!!!!!!!")
-    os.chdir("/mnt/data/project/2024_deep_phy/DeepCRE/DeepCRE_2/DeepCRE/model")
+    os.chdir(model_path)
     species = ['arabidopsis', 'zea', 'solanum', 'sbicolor']
     gene_models = ['Arabidopsis_thaliana.TAIR10.52.gtf', 'Zea_mays.Zm-B73-REFERENCE-NAM-5.0.52.gtf',
                 'Solanum_lycopersicum.SL3.0.52.gtf', 'Sorghum_bicolor.Sorghum_bicolor_NCBIv3.52.gtf']
