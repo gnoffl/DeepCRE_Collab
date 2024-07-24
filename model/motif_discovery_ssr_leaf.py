@@ -167,7 +167,7 @@ def compute_actual_and_hypothetical_scores(fasta, gtf, tpms, specie):
             hypothetical_scores_all.append(hyp_scores)
             onehot_all.append(x)
 
-    if len(actual_scores) > 1:
+    if len(actual_scores_all) > 1:
         # Save scores in h5 format
         if os.path.isfile(f'modisco/{specie}_scores.h5'):
             os.system(f'rm -rf modisco/{specie}_scores.h5')
