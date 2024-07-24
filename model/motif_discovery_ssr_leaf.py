@@ -166,21 +166,20 @@ def compute_actual_and_hypothetical_scores(fasta, gtf, tpms, specie):
             actual_scores_all.append(actual_scores)
             hypothetical_scores_all.append(hyp_scores)
             onehot_all.append(x)
-            break       #REMOVE AGAIN
 
-    # # Save scores in h5 format
-    # if os.path.isfile(f'modisco/{specie}_scores.h5'):
-    #     os.system(f'rm -rf modisco/{specie}_scores.h5')
+    # Save scores in h5 format
+    if os.path.isfile(f'modisco/{specie}_scores.h5'):
+        os.system(f'rm -rf modisco/{specie}_scores.h5')
 
-    # actual_scores_all = np.concatenate(actual_scores_all, axis=0)
-    # hypothetical_scores_all = np.concatenate(hypothetical_scores_all, axis=0)
-    # onehot_all = np.concatenate(onehot_all, axis=0)
+    actual_scores_all = np.concatenate(actual_scores_all, axis=0)
+    hypothetical_scores_all = np.concatenate(hypothetical_scores_all, axis=0)
+    onehot_all = np.concatenate(onehot_all, axis=0)
 
-    # h = h5py.File(f'modisco/{specie}_scores.h5', 'w')
-    # h.create_dataset('contrib_scores', data=actual_scores_all)
-    # h.create_dataset('hypothetical_scores', data=hypothetical_scores_all)
-    # h.create_dataset('one_hots', data=onehot_all)
-    # h.close()
+    h = h5py.File(f'modisco/{specie}_scores.h5', 'w')
+    h.create_dataset('contrib_scores', data=actual_scores_all)
+    h.create_dataset('hypothetical_scores', data=hypothetical_scores_all)
+    h.create_dataset('one_hots', data=onehot_all)
+    h.close()
 
 
 def run_modisco(specie):
@@ -250,7 +249,6 @@ def main(test=False):
     backend.clear_session()
     if not os.path.exists('modisco'):
         os.mkdir('modisco')
-    print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!\nrunning correct script\n!!!!!!!!!!!!!!!!!!!!!!!!!")
     os.chdir(model_path)
     species = ['arabidopsis', 'zea', 'solanum', 'sbicolor']
     gene_models = ['Arabidopsis_thaliana.TAIR10.52.gtf', 'Zea_mays.Zm-B73-REFERENCE-NAM-5.0.52.gtf',
@@ -286,4 +284,4 @@ def main(test=False):
 if __name__ == "__main__":
     # h5_path = "/home/gernot/Code/PhD_Code/DeepCRE_Collab/model/saved_models/arabidopsis_model_1_promoter_terminator.keras"
     # model = tf.keras.models.load_model(h5_path)
-    main(test=True)
+    main(test=False)
