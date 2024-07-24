@@ -278,4 +278,4 @@ def main(test=False):
 if __name__ == "__main__":
     # h5_path = "/home/gernot/Code/PhD_Code/DeepCRE_Collab/model/saved_models/arabidopsis_model_1_promoter_terminator.keras"
     # model = tf.keras.models.load_model(h5_path)
-    main()
+    main(test=True)
