@@ -100,7 +100,7 @@ def compute_scores(onehot_data, keras_model, hypothetical=False):
     return dinuc_shuff_explanations
 
 
-def compute_actual_and_hypothetical_scores(fasta, gtf, tpms, specie):
+def compute_actual_and_hypothetical_scores(fasta, gtf, tpms, specie, save_files=True):
     actual_scores_all, hypothetical_scores_all, onehot_all = [], [], []
     for saved_model_file_name in os.listdir(os.path.join(model_path, 'saved_models')):
         if saved_model_file_name.startswith(specie) and saved_model_file_name.endswith('terminator.h5'):
@@ -167,7 +167,7 @@ def compute_actual_and_hypothetical_scores(fasta, gtf, tpms, specie):
             hypothetical_scores_all.append(hyp_scores)
             onehot_all.append(x)
 
-    if len(actual_scores_all) > 1:
+    if len(actual_scores_all) > 1 and save_files:
         # Save scores in h5 format
         if os.path.isfile(f'modisco/{specie}_scores.h5'):
             os.system(f'rm -rf modisco/{specie}_scores.h5')
@@ -181,6 +181,8 @@ def compute_actual_and_hypothetical_scores(fasta, gtf, tpms, specie):
         h.create_dataset('hypothetical_scores', data=hypothetical_scores_all)
         h.create_dataset('one_hots', data=onehot_all)
         h.close()
+    elif not save_files:
+        print("not saving anything since this is a test run!")
     else:
         print(f"specie {specie} showed no results to save!")
 
@@ -270,7 +272,7 @@ def main(test=False):
                                                                 mapped_read_counts):
         if not os.path.exists(f'modisco/{plant}_modisco.hdf5'):
             print(f'Computing contribution and hypothetical contribution scores for {plant}-----------------------------\n')
-            compute_actual_and_hypothetical_scores(fasta_file, gtf_file, counts, plant)
+            compute_actual_and_hypothetical_scores(fasta_file, gtf_file, counts, plant, save_files=test)
             if not test:
                 print(f'Running TFMoDisco on {plant}------------------------------------------------------------------------\n')
                 run_modisco(plant)
@@ -292,4 +294,4 @@ def main(test=False):
 if __name__ == "__main__":
     # h5_path = "/home/gernot/Code/PhD_Code/DeepCRE_Collab/model/saved_models/arabidopsis_model_1_promoter_terminator.keras"
     # model = tf.keras.models.load_model(h5_path)
-    main(test=False)
+    main(test=True)
