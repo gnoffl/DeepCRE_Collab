@@ -29,7 +29,7 @@ import sys
 model_path = os.path.join(os.path.dirname(__file__), "..", "model")
 sys.path.insert(1, model_path)
 from utils import prepare_valid_seqs
-# from motif_discovery_ssr_leaf import shuffle_several_times
+from motif_discovery_ssr_leaf import compute_scores, combine_mult_and_diffref
 
 from collections import Counter                                                        #added on 15:59 22-july
 
@@ -51,33 +51,6 @@ def shuffle_several_times(list_containing_input_modes_for_an_example,           
 #    return shuffle_out
 
 class TestShap(unittest.TestCase):
-
-
-    @staticmethod
-    def compute_shap_scores(seqs, model, tf_idx=0):
-        shap.explainers.deep.deep_tf.op_handlers["AddV2"] = shap.explainers.deep.deep_tf.passthrough#type:ignore
-        shap.explainers.deep.deep_tf.op_handlers["FusedBatchNormV3"] = shap.explainers.deep.deep_tf.linearity_1d(0)#type:ignore
-        dinuc_shuff_explainer = shap.DeepExplainer(
-            (model.input, model.output[:, tf_idx]),
-            data=shuffle_several_times,
-            combine_mult_and_diffref=combine_mult_and_diffref) #type:ignore
-        hypothetical_scores = dinuc_shuff_explainer.shap_values(seqs)
-        actual_scores = hypothetical_scores * seqs#type:ignore
-        return actual_scores
-    
-    @staticmethod
-    def compute_scores(onehot_data, keras_model):
-        shap.explainers.deep.deep_tf.op_handlers["AddV2"] = shap.explainers.deep.deep_tf.passthrough
-        shap.explainers.deep.deep_tf.op_handlers["FusedBatchNormV3"] = shap.explainers.deep.deep_tf.passthrough  #removed "_" from _deep on 15:22 22-july
-        dinuc_shuff_explainer = shap.DeepExplainer(model=(keras_model.input, keras_model.output[:, 0]),
-                                                data=shuffle_several_times)
-        raw_shap_explanations = dinuc_shuff_explainer.shap_values(onehot_data)  #23-july 8:57 removed ", check_additivity=False"
-        dinuc_shuff_explanations = (np.sum(raw_shap_explanations, axis=-1)[:, :, None] * onehot_data)
-        print("im here!")
-        print(dinuc_shuff_explanations)
-
-        return dinuc_shuff_explanations
-
     def compute_actual_and_hypothetical_scores(self, fasta, gtf, tpms, specie):
         for saved_model_name_keras in os.listdir(os.path.join(model_path, 'saved_models')):
             if saved_model_name_keras.startswith(specie) and saved_model_name_keras.endswith('terminator.h5'):
@@ -106,40 +79,14 @@ class TestShap(unittest.TestCase):
                 print(x_val)
 
                 print(f'Number of correct predictions {x.shape[0]}')
-                raw_shap_explanations = self.compute_scores(onehot_data=x, keras_model=loaded_model)
-                # ---------- Computing importance and hypothetical scores-------------------------------------------#
-                # deeplift_model = kc.convert_model_from_saved_files("/home/gernot/Code/PhD_Code/DeepCRE_Collab/model/saved_models/arabidopsis_model_1_promoter_terminator.h5",
-                #                                                 nonlinear_mxts_mode=deeplift.layers.NonlinearMxtsMode.DeepLIFT_GenomicsDefault) #type:ignore
-                # shap_model = shap.DeepExplainer((x_val, predicted_prob[:, 0]), shuffle_several_times)
-
-                # deeplift_contribs_func = deeplift_model.get_target_contribs_func(find_scores_layer_idx=0,
-                #                                                                 target_layer_idx=-2)
-
-                # contribs_many_refs_func = get_shuffle_seq_ref_function(
-                #     score_computation_function=deeplift_contribs_func,
-                #     shuffle_func=dinuc_shuffle)
-
-                # multipliers_func = deeplift_model.get_target_multipliers_func(find_scores_layer_idx=0,
-                #                                                             target_layer_idx=-2)
-                # hypothetical_contribs_func = get_hypothetical_contribs_func_onehot(multipliers_func)
-
-                # # Once again, we rely on multiple shuffled references
-                # hypothetical_contribs_many_refs_func = get_shuffle_seq_ref_function(
-                #     score_computation_function=hypothetical_contribs_func,
-                #     shuffle_func=dinuc_shuffle)
-
-                # actual_scores = np.squeeze(np.sum(contribs_many_refs_func(task_idx=0,
-                #                                                         input_data_sequences=x,
-                #                                                         num_refs_per_seq=10,
-                #                                                         batch_size=50,
-                #                                                         progress_update=4000), axis=2))[:, :, None] * x
-
-                # raw_shap_explanations = shap_model.shap_values(x, check_additivity=False)
-                print(raw_shap_explanations)
-                print(raw_shap_explanations.shape)
-                # print(actual_scores)
-                # print(actual_scores.shape)
+                raw_shap_explanations = compute_scores(onehot_data=x, keras_model=loaded_model)
+                hyp_scores = compute_scores(onehot_data=x, keras_model=loaded_model, hypothetical=True)
+                print(f"raw_shap_explanations: {raw_shap_explanations}")
+                print(f"raw explanations shape: {raw_shap_explanations.shape}")
+                print(f"hyp_shap_explanations: {hyp_scores}")
+                print(f"hyp explanations shape: {hyp_scores.shape}")
                 self.assertIsNotNone(raw_shap_explanations)
+                self.assertEquals(hyp_scores[0].shape, raw_shap_explanations.shape)
                 return raw_shap_explanations
 
 
