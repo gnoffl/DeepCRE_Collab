@@ -168,7 +168,7 @@ def compute_actual_and_hypothetical_scores(fasta, gtf, tpms, specie, save_files=
         save_path = f'{save_location}/{specie}_scores.h5'
         # Save scores in h5 format
         if os.path.isfile(save_path):
-            os.system(f'rm -rf {save_path})
+            os.system(f'rm -rf {save_path}')
 
         actual_scores_all = np.concatenate(actual_scores_all, axis=0)
         hypothetical_scores_all = np.concatenate(hypothetical_scores_all, axis=0)
@@ -305,7 +305,7 @@ def test_modisco():
     for plant, fasta_file, gtf_file, pickled_key, counts in zip(species, genomes, gene_models, pickle_keys,
                                                                 mapped_read_counts):
         print(f'Computing contribution and hypothetical contribution scores for {plant}-----------------------------\n')
-        compute_actual_and_hypothetical_scores(fasta_file, gtf_file, counts, plant, save_files=not test, save_location=location)
+        compute_actual_and_hypothetical_scores(fasta_file, gtf_file, counts, plant, save_files=True, save_location=location)
         print(f'Running TFMoDisco on {plant}------------------------------------------------------------------------\n')
         run_modisco(plant, load_location=location, save_location=location)
 
