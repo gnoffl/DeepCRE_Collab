@@ -96,7 +96,6 @@ def compute_scores(onehot_data, keras_model, hypothetical=False):
                                                    data=shuffle_several_times)
     raw_shap_explanations = dinuc_shuff_explainer.shap_values(onehot_data)  #23-july 8:57 removed ", check_additivity=False"
     dinuc_shuff_explanations = (np.sum(raw_shap_explanations, axis=-1)[:, :, None] * onehot_data)
-    print(dinuc_shuff_explanations)
     return dinuc_shuff_explanations
 
 
@@ -159,10 +158,6 @@ def compute_actual_and_hypothetical_scores(fasta, gtf, tpms, specie, save_files=
             #                                                   batch_size=50,
             #                                                   progress_update=4000)
 
-            print("ACTUAL SCORES:")
-            print(actual_scores)
-            print("HYPOTHETICAL SCORES:")
-            print(hyp_scores)
             actual_scores_all.append(actual_scores)
             hypothetical_scores_all.append(hyp_scores)
             onehot_all.append(x)

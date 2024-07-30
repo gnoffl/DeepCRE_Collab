@@ -62,7 +62,6 @@ class TestShap(unittest.TestCase):
                 saved_model_path_h5 = os.path.splitext(saved_model_path_keras)[0] + ".h5"
                 loaded_model = tf.keras.models.load_model(saved_model_path_keras)
                 input_shape = x_val.shape
-                print(input_shape)
                 # print(loaded_model.summary())
                 predicted_prob = loaded_model.predict(x_val)
                 predicted_class = predicted_prob > 0.5
@@ -76,14 +75,14 @@ class TestShap(unittest.TestCase):
                         x.append(seq)
 
                 x = np.array(x)
-                print(x_val)
 
                 print(f'Number of correct predictions {x.shape[0]}')
-                raw_shap_explanations = compute_scores(onehot_data=x, keras_model=loaded_model)
+                raw_shap_explanations = compute_scores(onehot_data=x, keras_model=loaded_model, hypothetical=False)
                 hyp_scores = compute_scores(onehot_data=x, keras_model=loaded_model, hypothetical=True)
-                print(f"raw_shap_explanations: {raw_shap_explanations}")
+                print(f"raw_shap_explanations:\n {raw_shap_explanations}")
+                print(f"hyp_shap_explanations:\n {hyp_scores}")
+                print(f"input_shape: {x_val.shape}")
                 print(f"raw explanations shape: {raw_shap_explanations.shape}")
-                print(f"hyp_shap_explanations: {hyp_scores}")
                 print(f"hyp explanations shape: {hyp_scores.shape}")
                 self.assertIsNotNone(raw_shap_explanations)
                 self.assertEquals(hyp_scores[0].shape, raw_shap_explanations.shape)
@@ -104,9 +103,6 @@ class TestShap(unittest.TestCase):
                 print(f'Computing contribution and hypothetical contribution scores for {plant}-----------------------------\n')
                 res = self.compute_actual_and_hypothetical_scores(fasta_file, gtf_file, counts, plant)
                 print("resulting explanations: ", res)
-                res = self.compute_actual_and_hypothetical_scores(fasta_file, gtf_file, counts, plant)
-                print("resulting explanations: ", res)
-                print(f'Running TFMoDisco on {plant}------------------------------------------------------------------------\n')
     
     # def test_deep_shap(self):
     #     model = keras.Sequential([
