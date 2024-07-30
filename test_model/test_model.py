@@ -81,11 +81,12 @@ class TestShap(unittest.TestCase):
                 hyp_scores = compute_scores(onehot_data=x, keras_model=loaded_model, hypothetical=True)
                 print(f"raw_shap_explanations:\n {raw_shap_explanations}")
                 print(f"hyp_shap_explanations:\n {hyp_scores}")
-                print(f"input_shape: {x_val.shape}")
+                print(f"input_shape: {x.shape}")
                 print(f"raw explanations shape: {raw_shap_explanations.shape}")
                 print(f"hyp explanations shape: {hyp_scores.shape}")
                 self.assertIsNotNone(raw_shap_explanations)
-                self.assertEquals(hyp_scores[0].shape, raw_shap_explanations.shape)
+                self.assertEqual(hyp_scores.shape, raw_shap_explanations.shape)
+                self.assertNotEqual(hyp_scores, raw_shap_explanations)
                 return raw_shap_explanations
 
 
