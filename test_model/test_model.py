@@ -86,7 +86,7 @@ class TestShap(unittest.TestCase):
                 print(f"hyp explanations shape: {hyp_scores.shape}")
                 self.assertIsNotNone(raw_shap_explanations)
                 self.assertEqual(hyp_scores.shape, raw_shap_explanations.shape)
-                self.assertNotEqual(hyp_scores, raw_shap_explanations)
+                self.assertFalse(np.array_equal(hyp_scores, raw_shap_explanations))
                 return raw_shap_explanations
 
 
