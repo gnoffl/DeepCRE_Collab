@@ -208,18 +208,18 @@ def run_modisco(specie, load_location="", save_location=""):
     print('correct predictions', one_hots.shape)                    #type:ignore
     # -----------------------Running modisco----------------------------------------------#
     # Uncomment to refresh modules for when tweaking code during development:
-    reload(modisco.util)
-    reload(modisco.pattern_filterer)
-    reload(modisco.aggregator)
-    reload(modisco.core)
-    reload(modisco.seqlet_embedding.advanced_gapped_kmer)
-    reload(modisco.affinitymat.transformers)
-    reload(modisco.affinitymat.core)
-    reload(modisco.affinitymat)
-    reload(modisco.cluster.core)
-    reload(modisco.cluster)
-    reload(modisco.tfmodisco_workflow.seqlets_to_patterns)
-    reload(modisco.tfmodisco_workflow)
+    # reload(modisco.util)
+    # reload(modisco.pattern_filterer)
+    # reload(modisco.aggregator)
+    # reload(modisco.core)
+    # reload(modisco.seqlet_embedding.advanced_gapped_kmer)
+    # reload(modisco.affinitymat.transformers)
+    # reload(modisco.affinitymat.core)
+    # reload(modisco.affinitymat)
+    # reload(modisco.cluster.core)
+    # reload(modisco.cluster)
+    # reload(modisco.tfmodisco_workflow.seqlets_to_patterns)
+    # reload(modisco.tfmodisco_workflow)
     reload(modisco)
 
     null_per_pos_scores = modisco.coordproducers.LaplaceNullDist(num_to_samp=5000)
@@ -251,7 +251,7 @@ def run_modisco(specie, load_location="", save_location=""):
         one_hot=one_hots,
         null_per_pos_scores=null_per_pos_scores)
 
-    reload(modisco.util)
+    # reload(modisco.util)
     grp = h5py.File(save_file, "w")
     tfmodisco_results.save_hdf5(grp)
     grp.close()
