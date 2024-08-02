@@ -24,13 +24,13 @@ def onehot(seq):
             'C': [0, 1, 0, 0],
             'G': [0, 0, 1, 0],
             'T': [0, 0, 0, 1],
-            'N': [0, 0, 0, 0]}
+            'unk': [0, 0, 0, 0]}
     encoded = np.zeros(shape=(len(seq), 4))
     for i, nt in enumerate(seq):
         if nt in ['A', 'C', 'G', 'T']:
             encoded[i, :] = code[nt]
         else:
-            encoded[i, :] = code['N']
+            encoded[i, :] = code['unk']
     return encoded
 
 
@@ -146,7 +146,7 @@ def extract_string(fasta_obj: Fasta, gene_df: pd.DataFrame, intragenic: int, ext
 
 def extract_gene_flanking_regions(fasta_path: str, gff_path: str, output_path: str, extract_one_hot_flag: bool, extract_string_flag: bool, extragenic: int, intragenic: int) -> Optional[Tuple[List, List]]:
     if not (extract_one_hot_flag or extract_string_flag):
-        raise  ValueError("either extraction  as string or one hot coded np array is necessary!")
+        raise  ValueError("either extraction as string or one hot encoded np array is necessary!")
     fasta_obj = Fasta(fasta_path, as_raw=True, sequence_always_upper=True, read_ahead=10000)
     gene_df = find_genes(gff_path)
     if extract_string_flag:
