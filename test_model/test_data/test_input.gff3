@@ -1,0 +1,21 @@
+##gff-version 3
+##sequence-region   1 1 10000
+#!genome-build random test stuff
+#!genome-version random
+#!genome-date 2024-07
+#!genome-build-accession mynumber.1
+#!genebuild-last-updated 2024-07
+1	TAIR10	chromosome	1	10000	.	.	.	ID=chromosome:1;Alias=Chr1,CP002684.1,NC_003070.9
+###
+1	araport11	gene	1200	4200	.	+	.	ID=gene:AT1G01010;Name=NAC001;biotype=protein_coding;description=NAC domain containing protein 1 [Source:NCBI gene (formerly Entrezgene)%3BAcc:839580];gene_id=AT1G01010;logic_name=araport11
+1	araport11	mRNA	1200	4200	.	+	.	ID=transcript:AT1G01010.1;Parent=gene:AT1G01010;Name=NAC001-201;biotype=protein_coding;tag=Ensembl_canonical;transcript_id=AT1G01010.1
+1	araport11	five_prime_UTR	1200	1500	.	+	.	Parent=transcript:AT1G01010.1
+1	araport11	exon	1200	1800	.	+	.	Parent=transcript:AT1G01010.1;Name=AT1G01010.1.exon1;constitutive=1;ensembl_end_phase=1;ensembl_phase=-1;exon_id=AT1G01010.1.exon1;rank=1
+1	araport11	CDS	1500	2000	.	+	0	ID=CDS:AT1G01010.1;Parent=transcript:AT1G01010.1;protein_id=AT1G01010.1
+1	araport11	exon	1801	4200	.	+	.	Parent=transcript:AT1G01010.1;Name=AT1G01010.1.exon2;constitutive=1;ensembl_end_phase=0;ensembl_phase=1;exon_id=AT1G01010.1.exon2;rank=2
+1	araport11	three_prime_UTR	4000	4200	.	+	.	Parent=transcript:AT1G01010.1
+###
+1	araport11	gene	5800	6100	.	+	.	ID=gene:testgene1;Name=testgene1;biotype=mRNA;description=mRNA [Source:NCBI gene (formerly Entrezgene)%3BAcc:28716029];gene_id=AT1G03987;logic_name=araport11
+1	araport11	mRNA	5800	6100	.	+	.	ID=transcript:AT1G03987.1;Parent=gene:AT1G03987;Name=AT1G03987-201;biotype=lncRNA;tag=Ensembl_canonical;transcript_id=AT1G03987.1
+1	araport11	exon	5800	6100	.	+	.	Parent=transcript:AT1G03987.1;Name=AT1G03987.1.exon1;constitutive=1;ensembl_end_phase=-1;ensembl_phase=-1;exon_id=AT1G03987.1.exon1;rank=1
+###

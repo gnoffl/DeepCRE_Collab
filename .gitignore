@@ -7,6 +7,9 @@ model/gene_models/*
 model/genomes/*
 model/saved_models/*
 *.pickle
+test_model/test_data/*
+!test_model/test_data/test_input.fa
+!test_model/test_data/test_input.gff3
 
 #### GITHUB PYTHON TEMPLATE
 
