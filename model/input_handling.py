@@ -33,6 +33,19 @@ def onehot(seq):
             encoded[i, :] = code['unk']
     return encoded
 
+def complement(seq: str) -> str:
+    # there should be an existing funtion for this
+    map = {
+        "A": "T",
+        "C": "G",
+        "T": "A",
+        "G": "C",
+    }
+    result = ""
+    for char in seq:
+        result += map[char]
+    return result
+
 
 def find_genes(gff_path: str) -> pd.DataFrame:
     chromosomes, starts, ends, strands, gene_ids = [], [], [], [], []
@@ -54,7 +67,6 @@ def find_genes(gff_path: str) -> pd.DataFrame:
                 ends.append(feat.location.end) #type:ignore
                 strands.append(strand)
                 gene_ids.append(feat.id)
-                break
 
     return pd.DataFrame(data={
         "chromosome": chromosomes,
@@ -97,22 +109,27 @@ def extract_seq(fasta: Fasta, genes: pd.DataFrame, intragenic: int = 500, extrag
         prom_start, prom_end, term_start, term_end, additional_padding = vals
         append_sequences(prom_start=prom_start, prom_end=prom_end, term_start=term_start, term_end=term_end,
                             central_padding=CENTRAL_PADDING, additional_padding=additional_padding, chrom=chrom,
-                            gene_id=gene_id, lists=lists, fasta=fasta, intragenic=intragenic, extragenic=extragenic)
+                            gene_id=gene_id, lists=lists, fasta=fasta, intragenic=intragenic, extragenic=extragenic, strand=strand)
 
     return encoded_train_seqs, train_ids
 
 
 def append_sequences(prom_start, prom_end, term_start, term_end, central_padding, additional_padding,
-                        lists, chrom, gene_id, fasta, intragenic, extragenic) -> None:
+                        lists, chrom, gene_id, fasta, intragenic, extragenic, strand) -> None:
     encoded_train_seqs, train_ids = lists
     if prom_start > 0 and term_start > 0:
-        if prom_start < prom_end and term_start < term_end:
+        if strand == "+":
             direction = 1
-        elif prom_start > prom_end and term_start > term_end:
+        elif strand == "-":
             direction = -1
-        encoded_seq = np.concatenate([onehot(fasta[chrom][prom_start:prom_end])[::direction, ::direction],
-                                                np.zeros(shape=(central_padding + additional_padding, 4)),
-                                                onehot(fasta[chrom][term_start:term_end])[::direction, ::direction]])
+        promoter_seq = fasta[chrom][prom_start:prom_end:direction]
+        terminator_seq = fasta[chrom][term_start:term_end:direction]
+        if strand == "-":
+            promoter_seq = complement(promoter_seq)
+            terminator_seq = complement(terminator_seq)
+        encoded_seq = np.concatenate([onehot(promoter_seq),
+                                      np.zeros(shape=(central_padding + additional_padding, 4)),
+                                      onehot(terminator_seq)])
 
         if encoded_seq.shape[0] == 2*(extragenic + intragenic) + central_padding:
             encoded_train_seqs.append(encoded_seq)
@@ -125,14 +142,17 @@ def extract_string(fasta_obj: Fasta, gene_df: pd.DataFrame, intragenic: int, ext
         vals = find_start_end(start=start, end=end, intragenic=intragenic, extragenic=extragenic, strand=strand)
         prom_start, prom_end, term_start, term_end, additional_padding = vals
         if prom_start > 0 and term_start > 0:
-            if prom_start < prom_end and term_start < term_end:
+            if strand == "+":
                 direction = 1
-            elif prom_start > prom_end and term_start > term_end:
+            elif strand == "-":
                 direction = -1
             else:
                 raise  ValueError("Issue..")
             promoter = fasta_obj[chrom][prom_start:prom_end:direction]
             terminator = fasta_obj[chrom][term_start:term_end:direction]
+            if strand == "-":
+                promoter = complement(promoter)
+                terminator = complement(terminator)
             padding = (central_padding + additional_padding) * "N"
             gene_flanks = "".join(promoter) + padding + "".join(terminator)
             genes_seqs[f"{chrom}_{gene_id}_{extragenic}_{intragenic}"] = gene_flanks
@@ -144,9 +164,12 @@ def extract_string(fasta_obj: Fasta, gene_df: pd.DataFrame, intragenic: int, ext
 
 
 
-def extract_gene_flanking_regions(fasta_path: str, gff_path: str, output_path: str, extract_one_hot_flag: bool, extract_string_flag: bool, extragenic: int, intragenic: int) -> Optional[Tuple[List, List]]:
+def extract_gene_flanking_regions(fasta_path: str, gff_path: str, extract_one_hot_flag: bool, extract_string_flag: bool, extragenic: int, intragenic: int, output_path: str = "") -> Optional[Tuple[List, List]]:
     if not (extract_one_hot_flag or extract_string_flag):
         raise  ValueError("either extraction as string or one hot encoded np array is necessary!")
+    if extract_string_flag and output_path == "":
+        raise  ValueError("if the sequence is supposed to be extracted to a file, the output file name must be provided! Set output_path parameter.")
+
     fasta_obj = Fasta(fasta_path, as_raw=True, sequence_always_upper=True, read_ahead=10000)
     gene_df = find_genes(gff_path)
     if extract_string_flag:
