@@ -1,0 +1,11 @@
+##gff-version 3
+##sequence-region   1 1 10000
+#!genome-build random test stuff
+#!genome-version random
+#!genome-date 2024-07
+#!genome-build-accession mynumber.1
+#!genebuild-last-updated 2024-07
+1	TAIR10	chromosome	1	200	.	.	.	ID=chromosome:1;Alias=Chr1,CP002684.1,NC_003070.9
+###
+1	araport11	gene	20	40	.	-	.	ID=gene:AT1G01010;Name=NAC001;biotype=protein_coding;description=NAC domain containing protein 1 [Source:NCBI gene (formerly Entrezgene)%3BAcc:839580];gene_id=AT1G01010;logic_name=araport11
+1	araport11	mRNA	20	40	.	-	.	ID=transcript:AT1G01010.1;Parent=gene:AT1G01010;Name=NAC001-201;biotype=protein_coding;tag=Ensembl_canonical;transcript_id=AT1G01010.1

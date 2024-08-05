@@ -10,6 +10,9 @@ model/saved_models/*
 test_model/test_data/*
 !test_model/test_data/test_input.fa
 !test_model/test_data/test_input.gff3
+!test_model/test_data/test_input_short.fa
+!test_model/test_data/test_input_short.gff3
+!test_model/test_data/test_input_short_reverse.gff3
 
 #### GITHUB PYTHON TEMPLATE
 
