@@ -6,6 +6,8 @@ import numpy as np
 import pandas as pd
 import pickle
 import math
+import argparse
+import os
 
 from typing import Optional, Tuple, List
 
@@ -168,7 +170,7 @@ def extract_gene_flanking_regions(fasta_path: str, gff_path: str, extract_one_ho
     if not (extract_one_hot_flag or extract_string_flag):
         raise  ValueError("either extraction as string or one hot encoded np array is necessary!")
     if extract_string_flag and output_path == "":
-        raise  ValueError("if the sequence is supposed to be extracted to a file, the output file name must be provided! Set output_path parameter.")
+        output_path = os.path.splitext(fasta_path)[0] + "_extracted.fa"
 
     fasta_obj = Fasta(fasta_path, as_raw=True, sequence_always_upper=True, read_ahead=10000)
     gene_df = find_genes(gff_path)
@@ -178,3 +180,19 @@ def extract_gene_flanking_regions(fasta_path: str, gff_path: str, extract_one_ho
         sequences, gene_ids = extract_seq(fasta=fasta_obj, genes=gene_df, intragenic=intragenic, extragenic=extragenic)
         return sequences, gene_ids
 
+def parse_args():
+    parser = argparse.ArgumentParser("This script can extract gene flanking regions from a fasta file with annotation.")
+    parser.add_argument("--fasta", "-f", type=str, help="Path to fasta file.", required=True)
+    parser.add_argument("--gff", "-g", type=str, help="Path to the annotation file.", required=True)
+    parser.add_argument("--output", "-o", type=str, help="Path to the output file.", default="", required=False)
+    parser.add_argument("--extragenic", "-e", type=int, help="Number of bases to be extracted outside the gene. Meaning upstream of the TSS and downstream of the TTS. (defaults to 1000).", default=1000, required=False)
+    parser.add_argument("--intragenic", "-i", type=int, help="Number of bases to be extracted inside the gene. Meaning downstream of the TSS and upstream of the TTS. (defaults to 500).", default=500, required=False)
+
+    args = parser.parse_args()
+    return args
+
+
+if __name__ == "__main__":
+    args = parse_args()
+    extract_gene_flanking_regions(fasta_path=args.fasta, gff_path=args.gff, output_path=args.output, extract_one_hot_flag=False, extract_string_flag=True,
+                                  extragenic=args.extragenic, intragenic=args.intragenic)
