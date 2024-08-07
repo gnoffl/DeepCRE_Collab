@@ -242,7 +242,7 @@ class ConvNetwork:
         return output
 
 
-def prepare_valid_seqs(fasta, gtf, tpms, val_chrom, pkey=False, upstream=1000, downstream=500):
+def prepare_valid_seqs(fasta, gtf, tpms, val_chrom, pkey=False, upstream=1000, downstream=500, max_genes: int = -1):
     fasta = Fasta(f'genomes/{fasta}', as_raw=True, sequence_always_upper=True, read_ahead=10000)
     gene_models = pr.read_gtf(f'gene_models/{gtf}', as_df=True)
     gene_models = gene_models[gene_models['Feature'] == 'gene']
@@ -272,7 +272,7 @@ def prepare_valid_seqs(fasta, gtf, tpms, val_chrom, pkey=False, upstream=1000, d
     tpm_counts['true_target'] = true_targets
 
     encoded_val_seqs, labels, gene_ids = [], [], []
-    for chrom, start, end, strand, gene_id in gene_models.values:
+    for i, (chrom, start, end, strand, gene_id) in enumerate(gene_models.values):
         if strand == '+':
             prom_start, prom_end = start - upstream, start + downstream
             term_start, term_end = end - downstream, end + upstream
@@ -297,6 +297,9 @@ def prepare_valid_seqs(fasta, gtf, tpms, val_chrom, pkey=False, upstream=1000, d
                     encoded_val_seqs.append(encoded_seq)
                     labels.append(tpm_counts.loc[gene_id, 'true_target'])
                     gene_ids.append(gene_id)
+        if i == max_genes:
+            print("stopped loading more genes!!!")
+            break
 
     # Selecting validation sequences with label 1 and 0
     labels, encoded_val_seqs, gene_ids = np.array(labels), np.array(encoded_val_seqs), np.array(gene_ids)

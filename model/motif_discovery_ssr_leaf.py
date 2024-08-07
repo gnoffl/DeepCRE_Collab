@@ -99,13 +99,13 @@ def compute_scores(onehot_data, keras_model, hypothetical=False):
     return dinuc_shuff_explanations
 
 
-def compute_actual_and_hypothetical_scores(fasta, gtf, tpms, specie, save_files=True, save_location=""):
+def compute_actual_and_hypothetical_scores(fasta, gtf, tpms, specie, save_files=True, save_location="", max_genes: int = -1):
     actual_scores_all, hypothetical_scores_all, onehot_all = [], [], []
     for saved_model_file_name in os.listdir(os.path.join(model_path, 'saved_models')):
         if saved_model_file_name.startswith(specie) and saved_model_file_name.endswith('terminator.h5'):
             print(saved_model_file_name)
             val_chrom = saved_model_file_name.split('_')[2]
-            x_val, y_val, genes_val = prepare_valid_seqs(fasta, gtf, tpms, val_chrom, pkey=False)
+            x_val, y_val, genes_val = prepare_valid_seqs(fasta, gtf, tpms, val_chrom, pkey=False, max_genes=max_genes)
 
             saved_model_path = os.path.join(os.path.dirname(__file__), 'saved_models', saved_model_file_name)
             loaded_model = tf.keras.models.load_model(saved_model_path)
@@ -305,7 +305,7 @@ def test_modisco():
     for plant, fasta_file, gtf_file, pickled_key, counts in zip(species, genomes, gene_models, pickle_keys,
                                                                 mapped_read_counts):
         print(f'Computing contribution and hypothetical contribution scores for {plant}-----------------------------\n')
-        compute_actual_and_hypothetical_scores(fasta_file, gtf_file, counts, plant, save_files=True, save_location=location)
+        compute_actual_and_hypothetical_scores(fasta_file, gtf_file, counts, plant, save_files=True, save_location=location, max_genes=200)
         print(f'Running TFMoDisco on {plant}------------------------------------------------------------------------\n')
         run_modisco(plant, load_location=location, save_location=location)
 
