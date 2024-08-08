@@ -6,6 +6,7 @@ results/*
 model/gene_models/*
 model/genomes/*
 model/saved_models/*
+model/figures/*
 *.pickle
 
 #### GITHUB PYTHON TEMPLATE
