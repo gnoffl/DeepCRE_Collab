@@ -8,6 +8,7 @@ model/genomes/*
 model/saved_models/*
 model/figures/*
 model/figures/scoredist_0.png
+test_model/test_data
 *.png
 *.pickle
 
