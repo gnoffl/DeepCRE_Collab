@@ -7,6 +7,7 @@ model/gene_models/*
 model/genomes/*
 model/saved_models/*
 model/figures/*
+model/figures/scoredist_0.png
 *.pickle
 
 #### GITHUB PYTHON TEMPLATE
